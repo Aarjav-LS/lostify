@@ -38,7 +38,6 @@ async function connectDB() {
   if (!mongoUri) throw new Error('MONGODB_URI is not configured.');
   let uri = mongoUri.trim();
   if (!uri.includes('retryWrites=')) uri += (uri.includes('?') ? '&' : '?') + 'retryWrites=true&w=majority';
-  if (!/\/[^/?]+(\?|$)/.test(uri)) uri += (uri.includes('?') ? '&' : '/') + 'lostify';
   const client = new MongoClient(uri, { serverSelectionTimeoutMS: 5000, maxPoolSize: 10 });
   try {
     await client.connect();
