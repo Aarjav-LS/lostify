@@ -6,6 +6,7 @@ const app = express();
 const port = Number(process.env.PORT || 3000);
 const mongoUri = process.env.MONGODB_URI;
 let db = null;
+let dbError = null;
 
 const sessions = new Map();
 const loginAttempts = new Map();
@@ -35,13 +36,22 @@ function requireAdmin(req, res, next) { if (!req.user || req.user.role !== 'admi
 
 async function connectDB() {
   if (!mongoUri) throw new Error('MONGODB_URI is not configured.');
-  const client = new MongoClient(mongoUri);
-  await client.connect();
-  db = client.db('lostify');
+  let uri = mongoUri.trim();
+  if (!uri.includes('retryWrites=')) uri += (uri.includes('?') ? '&' : '?') + 'retryWrites=true&w=majority';
+  if (!/\/[^/?]+(\?|$)/.test(uri)) uri += (uri.includes('?') ? '&' : '/') + 'lostify';
+  const client = new MongoClient(uri, { serverSelectionTimeoutMS: 5000, maxPoolSize: 10 });
+  try {
+    await client.connect();
+    db = client.db('lostify');
+    dbError = null;
+  } catch (error) {
+    dbError = error;
+    console.error('MongoDB connection failed:', error.message);
+  }
 }
 
-function users() { return db.collection('users'); }
-function lostItems() { return db.collection('lost_items'); }
+function users() { if (!db) throw new Error(dbError || 'Database is not connected.'); return db.collection('users'); }
+function lostItems() { if (!db) throw new Error(dbError || 'Database is not connected.'); return db.collection('lost_items'); }
 
 function publicColumns() {
   return { id: '$_id', type: 1, title: 1, description: 1, model: 1, color: 1, size: 1, category: 1, location: 1, dateOccurred: 1, photoUrl: 1, status: 1, claimRequestStatus: 1, createdAt: 1 };
