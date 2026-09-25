@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: lostify
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: MONGODB_URI
+        sync: false
+      - key: ADMIN_EMAIL
+        value: admin@lostify.local
+      - key: CORS_ORIGIN
+        value: https://lostify.vercel.app
+      - key: NODE_ENV
+        value: production
